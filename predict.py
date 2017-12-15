@@ -51,6 +51,7 @@ def load_data(pair):
     # Break into test/train sets
     row = round(0.9 * result.shape[0])
     train = result[:int(row), :]
+    # TODO Why is this here?
     np.random.shuffle(train)
     x_train = train[:, :-1]
     y_train = train[:, -1]
@@ -142,9 +143,14 @@ def main():
         batch_size=512,
         epochs=50,
         verbose=1,
-        validation_data=(X_test, y_test),
-        validation_split=0.05
+        validation_data=(X_test, y_test)
     )
+
+    # Save the model
+    if not os.path.exists("saved_models"):
+        os.mkdir('saved_models')
+
+    model.save('saved_models/{}_{}_gdax'.format(pair, str(time.time())))
 
     score = model.evaluate(X_test, y_test, verbose=0)
     print("Score: {}".format(str(score)))
@@ -161,12 +167,6 @@ def main():
     print('Building predictions for point by point...')
     predictions_point = predict_point_by_point(model, X_test)
     plot_results_full(predictions_point, y_test)
-
-    # Save the model
-    if not os.path.exists("saved_models"):
-        os.mkdir('saved_models')
-
-    model.save('saved_models/{}_{}_gdax'.format(pair, str(time.time())))
 
 
 if __name__ == '__main__':
