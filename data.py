@@ -22,6 +22,7 @@ class GDAX:
             slice_data = self.request_slice(slice_start, slice_end, granularity)
             slice_start = slice_end
             bulk_save_datapoints(slice_data)
+            session.commit()
 
     def request_slice(self, start, end, granularity):
         # Allow 3 retries (we might get rate limited).
