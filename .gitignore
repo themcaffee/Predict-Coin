@@ -1,4 +1,6 @@
 .idea/
+database.db
+saved_models/
 
 # Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template
