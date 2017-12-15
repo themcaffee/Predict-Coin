@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from pprint import pprint
 from time import sleep
 
 import requests

@@ -1,9 +1,11 @@
-import numpy as np
+import os
 import time
+
+import matplotlib
+import numpy as np
 from keras.layers import LSTM, Dropout, Dense, Activation
 from keras.models import Sequential
 
-import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
@@ -125,7 +127,7 @@ def predict_sequences_multiple(model, data, window_size, prediction_len):
     return prediction_seqs
 
 
-if __name__ == '__main__':
+def main():
     # Get the data
     X_train, y_train, X_test, y_test = load_data()
 
@@ -137,7 +139,7 @@ if __name__ == '__main__':
         X_train,
         y_train,
         batch_size=512,
-        epochs=150,
+        epochs=50,
         verbose=1,
         validation_data=(X_test, y_test),
         validation_split=0.05
@@ -147,11 +149,24 @@ if __name__ == '__main__':
     print("Score: {}".format(str(score)))
 
     # Plot the predictions
-    # predictions_multiple = predict_sequences_multiple(model, X_test, 50, 50)
-    # plot_results_multiple(predictions_multiple, y_test, 50)
+    print('Building predictions for multiple different windows...')
+    predictions_multiple = predict_sequences_multiple(model, X_test, 50, 50)
+    plot_results_multiple(predictions_multiple, y_test, 50)
 
-    # predictions_full = predict_sequence_full(model, X_test, 50)
-    # plot_results_full(predictions_full, y_test)
+    print('Building predictions for a full run...')
+    predictions_full = predict_sequence_full(model, X_test, 50)
+    plot_results_full(predictions_full, y_test)
 
+    print('Building predictions for point by point...')
     predictions_point = predict_point_by_point(model, X_test)
     plot_results_full(predictions_point, y_test)
+
+    # Save the model
+    if not os.path.exists("saved_models"):
+        os.mkdir('saved_models')
+
+    model.save('/saved_models/{}_gdax'.format(str(time.time())))
+
+
+if __name__ == '__main__':
+    main()
