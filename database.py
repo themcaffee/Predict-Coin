@@ -16,6 +16,7 @@ class DataPoint(Base):
     open = Column(Integer)
     close = Column(Integer)
     volume = Column(Integer)
+    pair = Column(String) # IE BTC-USD
 
 
 if not os.path.isfile('database.db'):
@@ -25,16 +26,8 @@ session_maker = sessionmaker(bind=engine)
 session = session_maker()
 
 
-def bulk_save_datapoints(points):
+def bulk_save_datapoints(points, pair):
     mappings = []
     for point in points:
-        mappings.append(dict(time=point[0], low=point[1], high=point[2], open=point[3], close=point[4], volume=point[5]))
+        mappings.append(dict(time=point[0], low=point[1], high=point[2], open=point[3], close=point[4], volume=point[5], pair=pair))
     session.bulk_insert_mappings(DataPoint, mappings)
-
-
-def save_datapoint(time, low, high, open, close, volume):
-    point = DataPoint(time=time, low=low, high=high, open=open, close=close, volume=volume)
-    session.add(point)
-    session.commit()
-
-

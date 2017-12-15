@@ -165,7 +165,7 @@ def main():
     if not os.path.exists("saved_models"):
         os.mkdir('saved_models')
 
-    model.save('/saved_models/{}_gdax'.format(str(time.time())))
+    model.save('saved_models/{}_gdax'.format(str(time.time())))
 
 
 if __name__ == '__main__':

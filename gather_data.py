@@ -19,13 +19,16 @@ class GDAX:
         while slice_start != end:
             slice_end = min(slice_start + delta, end)
             slice_data = self.request_slice(slice_start, slice_end, granularity)
+            # If this data is not available, skip over it
+            if not slice_data:
+                continue
             slice_start = slice_end
-            bulk_save_datapoints(slice_data)
+            bulk_save_datapoints(slice_data, self.pair)
             session.commit()
 
     def request_slice(self, start, end, granularity):
         # Allow 3 retries (we might get rate limited).
-        retries = 3
+        retries = 10
         for retry_count in range(0, retries):
             # From https://docs.gdax.com/#get-historic-rates the response is in the format:
             # [[time, low, high, open, close, volume], ...]
@@ -37,7 +40,8 @@ class GDAX:
 
             if response.status_code != 200 or not len(response.json()):
                 if retry_count + 1 == retries:
-                    raise Exception('Failed to get exchange data for ({}, {})!'.format(start, end))
+                    print('Failed to get exchange data for ({}, {})!'.format(start, end))
+                    return None
                 else:
                     # Exponential back-off.
                     sleep(1.5 ** retry_count)
@@ -58,6 +62,6 @@ class GDAX:
 
 
 if __name__ == '__main__':
-    GDAX('BTC-USD').fetch(datetime(2017, 7, 1), datetime(2017, 12, 1), 10)
+    GDAX('BTC-USD').fetch(datetime(2017, 7, 1), datetime(2017, 12, 14), 1)
     datapoints = session.query(DataPoint).all()
     print("Data points added: {}".format(str(len(datapoints))))
