@@ -19,12 +19,11 @@ class GDAX:
         while slice_start != end:
             slice_end = min(slice_start + delta, end)
             slice_data = self.request_slice(slice_start, slice_end, granularity)
-            # If this data is not available, skip over it
-            if not slice_data:
-                continue
             slice_start = slice_end
-            bulk_save_datapoints(slice_data, self.pair)
-            session.commit()
+            # If this data is not available, skip over it
+            if slice_data:
+                bulk_save_datapoints(slice_data, self.pair)
+                session.commit()
 
     def request_slice(self, start, end, granularity):
         # Allow 3 retries (we might get rate limited).
