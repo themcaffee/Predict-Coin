@@ -33,10 +33,10 @@ def plot_results_full(predicted_data, true_data):
     plt.show()
 
 
-def load_data():
+def load_data(pair):
     seq_len = 51
     # Get all of the closing data from the db
-    datapoints = session.query(DataPoint).all()
+    datapoints = session.query(DataPoint).filter_by(pair=pair).all()
     data = []
     for point in datapoints:
         data.append(point.close)
@@ -128,8 +128,9 @@ def predict_sequences_multiple(model, data, window_size, prediction_len):
 
 
 def main():
+    pair = 'BTC-USD'
     # Get the data
-    X_train, y_train, X_test, y_test = load_data()
+    X_train, y_train, X_test, y_test = load_data(pair)
 
     # Compile the model
     model = compile_model()
@@ -165,7 +166,7 @@ def main():
     if not os.path.exists("saved_models"):
         os.mkdir('saved_models')
 
-    model.save('saved_models/{}_gdax'.format(str(time.time())))
+    model.save('saved_models/{}_{}_gdax'.format(pair, str(time.time())))
 
 
 if __name__ == '__main__':
