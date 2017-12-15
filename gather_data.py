@@ -61,6 +61,6 @@ class GDAX:
 
 
 if __name__ == '__main__':
-    GDAX('ETH-USD').fetch(datetime(2017, 7, 1), datetime(2017, 12, 14), 1)
+    GDAX('BTC-USD').fetch(datetime(2017, 7, 1), datetime(2017, 12, 14), 1)
     datapoints = session.query(DataPoint).all()
     print("Data points added: {}".format(str(len(datapoints))))

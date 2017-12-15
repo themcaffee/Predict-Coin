@@ -33,10 +33,41 @@ def plot_results_full(predicted_data, true_data):
     plt.show()
 
 
-def load_data(pair):
+def load_data(pair, start_date=None, end_date=None):
+    """
+    Load the data. If from_date and to_date are not specified,
+    uses the entire dataset
+    :param pair: The currency pair (BTC-USD)
+    :param start_date: A POSIX timestamp of the start date (optional)
+    :param end_date: A POSIX timestamp of the end date (optional)
+    :return:
+    """
     seq_len = 51
-    # Get all of the closing data from the db
-    datapoints = session.query(DataPoint).filter_by(pair=pair).all()
+
+    # Get the data from the db
+    if start_date and not end_date:
+        start_date_epoch = int(start_date.timestamp())
+        datapoints = session.query(DataPoint).filter(
+            DataPoint.pair == pair,
+            start_date_epoch < DataPoint.time
+        ).all()
+    elif not start_date and end_date:
+        end_date_epoch = int(end_date.timestamp())
+        datapoints = session.query(DataPoint).filter(
+            DataPoint.pair == pair,
+            DataPoint.time < end_date_epoch
+        ).all()
+    elif start_date and end_date:
+        start_date_epoch = int(start_date.timestamp())
+        end_date_epoch = int(end_date.timestamp())
+        datapoints = session.query(DataPoint).filter(
+            DataPoint.pair == pair,
+            start_date_epoch < DataPoint.time < end_date_epoch
+        ).all()
+    else:
+        datapoints = session.query(DataPoint).filter_by(pair=pair).all()
+
+    # Format the data into batches
     data = []
     for point in datapoints:
         data.append(point.close)
