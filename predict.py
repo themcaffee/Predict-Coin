@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import numpy as np
 import time
 from keras.layers import LSTM, Dropout, Dense, Activation
@@ -11,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from database import session, DataPoint
 
+
 def plot_results_multiple(predicted_data, true_data, prediction_len):
     fig = plt.figure(facecolor='white')
     ax = fig.add_subplot(111)
@@ -20,6 +19,15 @@ def plot_results_multiple(predicted_data, true_data, prediction_len):
         padding = [None for p in range(i * prediction_len)]
         plt.plot(padding + data, label='Prediction')
         plt.legend()
+    plt.show()
+
+
+def plot_results_full(predicted_data, true_data):
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    ax.plot(true_data, label='True Data')
+    plt.plot(predicted_data, label='Prediction')
+    plt.legend()
     plt.show()
 
 
@@ -129,10 +137,21 @@ if __name__ == '__main__':
         X_train,
         y_train,
         batch_size=512,
-        nb_epoch=1,
+        epochs=150,
+        verbose=1,
+        validation_data=(X_test, y_test),
         validation_split=0.05
     )
 
+    score = model.evaluate(X_test, y_test, verbose=0)
+    print("Score: {}".format(str(score)))
+
     # Plot the predictions
-    predictions = predict_sequences_multiple(model, X_test, 50, 50)
-    plot_results_multiple(predictions, y_test, 50)
+    # predictions_multiple = predict_sequences_multiple(model, X_test, 50, 50)
+    # plot_results_multiple(predictions_multiple, y_test, 50)
+
+    # predictions_full = predict_sequence_full(model, X_test, 50)
+    # plot_results_full(predictions_full, y_test)
+
+    predictions_point = predict_point_by_point(model, X_test)
+    plot_results_full(predictions_point, y_test)
