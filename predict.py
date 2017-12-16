@@ -1,10 +1,12 @@
 import os
 import time
+from pprint import pprint
 
 import matplotlib
 import numpy as np
 from keras.layers import LSTM, Dropout, Dense, Activation
 from keras.models import Sequential
+from sklearn.preprocessing import MinMaxScaler
 
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -33,11 +35,12 @@ def plot_results_full(predicted_data, true_data):
     plt.show()
 
 
-def load_data(pair, start_date=None, end_date=None):
+def load_data(pair, scaler, start_date=None, end_date=None):
     """
     Load the data. If from_date and to_date are not specified,
     uses the entire dataset
     :param pair: The currency pair (BTC-USD)
+    :param scaler: The scaler object to fit data to the 0, 1 range
     :param start_date: A POSIX timestamp of the start date (optional)
     :param end_date: A POSIX timestamp of the end date (optional)
     :return:
@@ -46,23 +49,19 @@ def load_data(pair, start_date=None, end_date=None):
 
     # Get the data from the db
     if start_date and not end_date:
-        start_date_epoch = int(start_date.timestamp())
         datapoints = session.query(DataPoint).filter(
             DataPoint.pair == pair,
-            start_date_epoch < DataPoint.time
+            start_date < DataPoint.time
         ).all()
     elif not start_date and end_date:
-        end_date_epoch = int(end_date.timestamp())
         datapoints = session.query(DataPoint).filter(
             DataPoint.pair == pair,
-            DataPoint.time < end_date_epoch
+            DataPoint.time < end_date
         ).all()
     elif start_date and end_date:
-        start_date_epoch = int(start_date.timestamp())
-        end_date_epoch = int(end_date.timestamp())
         datapoints = session.query(DataPoint).filter(
             DataPoint.pair == pair,
-            start_date_epoch < DataPoint.time < end_date_epoch
+            start_date < DataPoint.time < end_date
         ).all()
     else:
         datapoints = session.query(DataPoint).filter_by(pair=pair).all()
@@ -76,7 +75,7 @@ def load_data(pair, start_date=None, end_date=None):
         result.append(data[index: index + seq_len])
 
     # Normalize the data
-    result = normalize_data(result)
+    result = scaler.fit_transform(result)
     result = np.array(result)
 
     # Break into test/train sets
@@ -93,14 +92,6 @@ def load_data(pair, start_date=None, end_date=None):
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
     return [x_train, y_train, x_test, y_test]
-
-
-def normalize_data(window_data):
-    normalised_data = []
-    for window in window_data:
-        normalised_window = [((float(p) / float(window[0])) - 1) for p in window]
-        normalised_data.append(normalised_window)
-    return normalised_data
 
 
 def compile_model():
@@ -123,14 +114,19 @@ def compile_model():
 
     start = time.time()
     model.compile(loss='mse', optimizer='rmsprop')
-    print('compilation time : ', time.time() - start)
+    # print('compilation time : ', time.time() - start)
     return model
 
 
-def predict_point_by_point(model, data):
+def predict_point_by_point(model, data, denormalize_scaler=None):
     #Predict each timestep given the last sequence of true data, in effect only predicting 1 step ahead each time
+    pprint(data)
     predicted = model.predict(data)
+    pprint(predicted)
+    if denormalize_scaler:
+        predicted = denormalize_scaler.inverse_transform(predicted)
     predicted = np.reshape(predicted, (predicted.size,))
+    pprint(predicted)
     return predicted
 
 
@@ -172,7 +168,7 @@ def main():
         X_train,
         y_train,
         batch_size=512,
-        epochs=50,
+        epochs=1,
         verbose=1,
         validation_data=(X_test, y_test)
     )
@@ -181,19 +177,19 @@ def main():
     if not os.path.exists("saved_models"):
         os.mkdir('saved_models')
 
-    model.save('saved_models/{}_{}_gdax'.format(pair, str(time.time())))
+    model.save('saved_models/{}_{}_gdax'.format(pair, str(int(time.time()))))
 
     score = model.evaluate(X_test, y_test, verbose=0)
     print("Score: {}".format(str(score)))
 
     # Plot the predictions
-    print('Building predictions for multiple different windows...')
-    predictions_multiple = predict_sequences_multiple(model, X_test, 50, 50)
-    plot_results_multiple(predictions_multiple, y_test, 50)
+    # print('Building predictions for multiple different windows...')
+    # predictions_multiple = predict_sequences_multiple(model, X_test, 50, 50)
+    # plot_results_multiple(predictions_multiple, y_test, 50)
 
-    print('Building predictions for a full run...')
-    predictions_full = predict_sequence_full(model, X_test, 50)
-    plot_results_full(predictions_full, y_test)
+    # print('Building predictions for a full run...')
+    # predictions_full = predict_sequence_full(model, X_test, 50)
+    # plot_results_full(predictions_full, y_test)
 
     print('Building predictions for point by point...')
     predictions_point = predict_point_by_point(model, X_test)
