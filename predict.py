@@ -148,14 +148,17 @@ def predict_sequence_full(model, data, window_size):
     return predicted
 
 
-def predict_sequences_multiple(model, data, window_size, prediction_len):
+def predict_sequences_multiple(model, data, window_size, prediction_len, denormalize_scaler=None):
     #Predict sequence of 50 steps before shifting prediction run forward by 50 steps
     prediction_seqs = []
     for i in range(round(len(data)/prediction_len) - 1):
         curr_frame = data[i*prediction_len]
         predicted = []
         for j in range(prediction_len):
-            predicted.append(model.predict(curr_frame[np.newaxis, :, :])[0, 0])
+            current_predicted = model.predict(curr_frame[np.newaxis, :, :])[0, 0]
+            if denormalize_scaler:
+                current_predicted = denormalize_scaler.inverse_transform(current_predicted)
+            predicted.append(current_predicted)
             curr_frame = curr_frame[1:]
             curr_frame = np.insert(curr_frame, [window_size-1], predicted[-1], axis=0)
         prediction_seqs.append(predicted)
