@@ -6,7 +6,7 @@ import matplotlib
 import numpy as np
 from keras.layers import LSTM, Dropout, Dense, Activation
 from keras.models import Sequential
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ def plot_results_full(predicted_data, true_data):
     plt.show()
 
 
-def load_data(pair, scaler, start_date=None, end_date=None):
+def load_data(pair, start_date=None, end_date=None):
     """
     Load the data. If from_date and to_date are not specified,
     uses the entire dataset
@@ -75,7 +75,6 @@ def load_data(pair, scaler, start_date=None, end_date=None):
         result.append(data[index: index + seq_len])
 
     # Normalize the data
-    result = scaler.fit_transform(result)
     result = np.array(result)
 
     # Break into test/train sets
@@ -88,10 +87,18 @@ def load_data(pair, scaler, start_date=None, end_date=None):
     x_test = result[int(row):, :-1]
     y_test = result[int(row):, -1]
 
+    # Normalize / scale the data
+    scalerX = MinMaxScaler(feature_range=(-1, 1)).fit(x_train)
+    scalerY = MinMaxScaler(feature_range=(-1, 1)).fit(y_train)
+    x_train = scalerX.transform(x_train)
+    y_train = scalerY.transform(y_train)
+    x_test = scalerX.transform(x_test)
+    y_test = scalerY.transform(y_test)
+
     x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
-    return [x_train, y_train, x_test, y_test]
+    return [x_train, y_train, x_test, y_test, scalerX, scalerY]
 
 
 def compile_model():
@@ -158,7 +165,7 @@ def predict_sequences_multiple(model, data, window_size, prediction_len):
 def main():
     pair = 'BTC-USD'
     # Get the data
-    X_train, y_train, X_test, y_test = load_data(pair)
+    X_train, y_train, X_test, y_test, scalerX, scalerY = load_data(pair)
 
     # Compile the model
     model = compile_model()
@@ -193,6 +200,10 @@ def main():
 
     print('Building predictions for point by point...')
     predictions_point = predict_point_by_point(model, X_test)
+    plot_results_full(predictions_point, y_test)
+
+    predictions_point = predict_point_by_point(model, X_test, denormalize_scaler=scalerY)
+    y_test = scalerY.inverse_transform(y_test)
     plot_results_full(predictions_point, y_test)
 
 
